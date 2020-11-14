@@ -37,14 +37,18 @@ func New(p Params) http.HandlerFunc {
 			finalize(w, status, p.ErrC, err)
 		}()
 
-		if r.Method != http.MethodGet {
-			err = fmt.Errorf("bad request method: %s", r.Method)
+		if r.Method != http.MethodGet && r.Method != http.MethodPost {
+			err = fmt.Errorf("request method not allowed: %s", r.Method)
 			status = http.StatusMethodNotAllowed
 			return
 		}
-		err = r.ParseForm()
+
+		var (
+			url    string
+			params *clip.Params
+		)
+		url, params, err = parseForm(r)
 		if err != nil {
-			err = fmt.Errorf("r.ParseForm: %w", err)
 			status = http.StatusBadRequest
 			return
 		}
@@ -60,11 +64,6 @@ func New(p Params) http.HandlerFunc {
 		}
 		defer func() { p.PoolC <- struct{}{} }()
 
-		url := r.Form.Get("url")
-		query := r.Form.Get("query")
-		withContainers := strings.ToLower(r.Form.Get("with_containers")) == "true"
-		size := r.Form.Get("size")
-
 		w.Header().Add("Content-Type", "application/pdf")
 
 		bw := bufio.NewWriter(w)
@@ -75,11 +74,7 @@ func New(p Params) http.HandlerFunc {
 			}
 		}()
 
-		err = clip.Convert(ctx, url, bw, clip.Params{
-			Query:              query,
-			PreserveContainers: withContainers,
-			Size:               size,
-		})
+		err = clip.Convert(ctx, url, bw, *params)
 		if err != nil {
 			var ignored *clip.IgnoredError
 			if !errors.As(err, &ignored) {
@@ -130,4 +125,21 @@ func finalize(w http.ResponseWriter, status int, errC chan<- error, err error) {
 			errC <- fmt.Errorf("write response: %w", err)
 		}
 	}
+}
+
+func parseForm(r *http.Request) (string, *clip.Params, error) {
+	err := r.ParseForm()
+	if err != nil {
+		return "", nil, fmt.Errorf("r.ParseForm: %w", err)
+
+	}
+	url := r.Form.Get("url")
+	query := r.Form.Get("query")
+	withContainers := strings.ToLower(r.Form.Get("with_containers")) == "true"
+	size := r.Form.Get("size")
+	return url, &clip.Params{
+		Query:          query,
+		Size:           size,
+		WithContainers: withContainers,
+	}, nil
 }

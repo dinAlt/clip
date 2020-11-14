@@ -7,10 +7,13 @@ import (
 	"io"
 	"net/http"
 	neturl "net/url"
+	"reflect"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
+
+	"github.com/dinalt/toolbox/rutil"
 )
 
 // Package errors.
@@ -43,14 +46,15 @@ func (e *URLError) Error() string {
 
 // Params are used to tweak Convert output.
 type Params struct {
-	Query              string // css selector to be included in resulted PDF document
-	PreserveContainers bool   // preserve all containert from document body to selector query result
-	Size               string // wkhtmltopdf size param
+	Query          string // css selector to be included in resulted PDF document
+	WithContainers bool   // preserve all containert from document body to selector query result
+	Size           string // wkhtmltopdf size param
 }
 
 // Convert download page from url, converts it to PDF via wkhtmltopdf
 // and writes result to w.
 func Convert(ctx context.Context, url string, w io.Writer, p Params) error {
+	refl()
 	gen, err := wkhtmltopdf.NewPDFGenerator()
 	if err != nil {
 		return fmt.Errorf("wkhtmltopdf.NewPDFGenerator: %w", err)
@@ -128,7 +132,7 @@ func getHTML(ctx context.Context, url string, p Params) (string, error) {
 		return "", fmt.Errorf("goquery.NewDocumentFromReader: %w", err)
 	}
 
-	prepare(doc, p.Query, p.PreserveContainers)
+	prepare(doc, p.Query, p.WithContainers)
 	if len(doc.Find("body").Children().Nodes) == 0 {
 		return "", ErrNoQueryResult
 	}
@@ -202,4 +206,20 @@ func checkSize(size string) error {
 		return nil
 	}
 	return fmt.Errorf("%w: %s", ErrInvalidPageSize, size)
+}
+
+func refl() {
+	gen := wkhtmltopdf.NewPDFPreparer()
+	v := rutil.DerefType(reflect.TypeOf(gen))
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Field(i)
+		t := f.Type
+		if f.Name == "outlintOptions" || f.Name == "globalOptions" {
+			for ii := 0; ii < t.NumField(); ii++ {
+				fmt.Printf("%+v\n", t.Field(ii))
+			}
+			continue
+		}
+		fmt.Printf("%+v\n", f)
+	}
 }

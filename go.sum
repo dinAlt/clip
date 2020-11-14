@@ -4,6 +4,9 @@ github.com/SebastiaanKlippert/go-wkhtmltopdf v1.6.0 h1:Rq8F5akx2Mpj5BehnEdrE3QdF
 github.com/SebastiaanKlippert/go-wkhtmltopdf v1.6.0/go.mod h1:zRBvVJtIfhaWvQ9lPIkXrtona4qqSmjZ1HfKvq4dQzI=
 github.com/andybalholm/cascadia v1.1.0 h1:BuuO6sSfQNFRu1LppgbD25Hr2vLYW25JvxHs5zzsLTo=
 github.com/andybalholm/cascadia v1.1.0/go.mod h1:GsXiBklL0woXo1j/WYWtSYYC4ouU9PqHO0sqidkEA4Y=
+github.com/dinalt/toolbox v0.0.0-20201111104825-778511571c05 h1:BBZBs9XyQyAHew+blBsH//tEk7bt8fAf8+Cv9YBJ3zg=
+github.com/dinalt/toolbox v0.0.0-20201111104825-778511571c05/go.mod h1:9ZiY2kV/oH4ek/H8XfEfG128L8MoQiunsDVoNu1H0nc=
+github.com/fatih/camelcase v1.0.0/go.mod h1:yN2Sb0lFhZJUdVvtELVWefmrXpuZESvPmqwoZc+/fpc=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20180218175443-cbe0f9307d01/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20200202094626-16171245cfb2 h1:CCH4IOTTfewWjGOlSp+zGcjutRKlBEZQ6wTn8ozI/nI=
