@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -12,14 +13,22 @@ import (
 )
 
 const (
-	maxWorkersCount = 10
-	serveAddr       = ":8080"
+	defaultMaxWorkersCount = 10
+	defaultServeAddr       = ":8080"
 )
 
-func main() {
-	errC := make(chan error)
-	go serveErrors(errC)
+var (
+	maxWorkersCount int
+	serveAddr       string
+)
 
+func init() {
+	flag.IntVar(&maxWorkersCount, "w", defaultMaxWorkersCount, "maximum workers count")
+	flag.StringVar(&serveAddr, "a", defaultServeAddr, "serve host:port")
+}
+
+func main() {
+	flag.Parse()
 	poolC := make(chan struct{}, maxWorkersCount)
 	for i := 0; i < maxWorkersCount; i++ {
 		poolC <- struct{}{}
@@ -27,8 +36,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/clip", handler.New(handler.Params{
-		ErrC:  errC,
-		PoolC: poolC,
+		PoolC:  poolC,
+		Logger: logger{},
 	}))
 
 	srv := http.Server{
@@ -65,8 +74,12 @@ func main() {
 	}
 }
 
-func serveErrors(errC <-chan error) {
-	for err := range errC {
-		log.Println("handler error:", err)
-	}
+type logger struct{}
+
+func (l logger) Error(err error) {
+	log.Printf("ERROR: %v", err)
+}
+
+func (l logger) Printf(format string, v ...interface{}) {
+	log.Printf(format, v...)
 }
