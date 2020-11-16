@@ -132,11 +132,11 @@ func New(p Params) http.HandlerFunc {
 }
 
 const (
-	sBadResponse = 701 + iota
-	sNoResult
-	sBadURLScheme
-	sBadURL
-	sValidationFailed
+	SBadResponse = 701 + iota
+	SNoResult
+	SBadURLScheme
+	SBadURL
+	SValidationFailed
 )
 
 func finalize(w http.ResponseWriter, log Logger, err error) {
@@ -158,13 +158,13 @@ func finalize(w http.ResponseWriter, log Logger, err error) {
 	switch {
 	case errors.Is(err, clip.ErrBadStatus):
 		msg = "server returned non 2xx status for requested url"
-		status = sBadResponse
+		status = SBadResponse
 	case errors.Is(err, clip.ErrBadURLScheme):
 		msg = "bad URL scheme: only http and https are supported"
-		status = sBadURLScheme
+		status = SBadURLScheme
 	case errors.Is(err, clip.ErrNoQueryResult):
 		msg = "no result elements for given selectors"
-		status = sNoResult
+		status = SNoResult
 	case errors.Is(err, ErrBodyIsEmpty):
 		msg = "request body is empty"
 		status = http.StatusBadRequest
@@ -175,14 +175,14 @@ func finalize(w http.ResponseWriter, log Logger, err error) {
 		status = http.StatusMethodNotAllowed
 	case errors.As(err, &validErr):
 		msg = validErr.Message
-		status = sValidationFailed
+		status = SValidationFailed
 	case errors.As(err, &urlErr):
 		msg = "malformed url"
-		status = sBadURL
+		status = SBadURL
 	case errors.As(err, &valErr):
 		msg = fmt.Sprintf("validation error: param %s requires value of %s",
 			valErr.Param, valErr.Required)
-		status = sValidationFailed
+		status = SValidationFailed
 	default:
 		status = http.StatusInternalServerError
 	}
