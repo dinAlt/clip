@@ -144,6 +144,9 @@ func (p *Params) merge(g *wkhtmltopdf.PDFGenerator) {
 		g.Cover.Zoom.Set(*p.Zoom)
 		g.TOC.Zoom.Set(*p.Zoom)
 	}
+
+	g.Cover.LoadErrorHandling.Set("ignore")
+	g.TOC.LoadErrorHandling.Set("ignore")
 }
 
 // Package errors.
