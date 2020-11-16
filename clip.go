@@ -78,7 +78,8 @@ func (p *Params) validate() error {
 }
 
 func (p *Params) skipDOMProcess() bool {
-	return p.Query == nil && p.RemoveQuery == nil && p.CustomStyles == nil
+	return p.Query == nil && p.RemoveQuery == nil &&
+		p.CustomStyles == nil && p.DisableJavascript == nil
 }
 
 func (p *Params) merge(g *wkhtmltopdf.PDFGenerator) {
@@ -124,6 +125,8 @@ func (p *Params) merge(g *wkhtmltopdf.PDFGenerator) {
 	if p.DisableJavascript != nil {
 		g.Cover.DisableJavascript.Set(*p.DisableJavascript)
 		g.TOC.DisableJavascript.Set(*p.DisableJavascript)
+		g.Cover.JavascriptDelay.Set(1)
+		g.TOC.JavascriptDelay.Set(1)
 	}
 	if p.NoBackground != nil {
 		g.Cover.NoBackground.Set(*p.NoBackground)
@@ -304,6 +307,9 @@ func applyChanges(doc *goquery.Document, p *Params) {
 	if p.CustomStyles != nil && len(*p.CustomStyles) > 0 {
 		doc.Find("head").AppendHtml("<style>" + *p.CustomStyles + "</style>")
 	}
+	if p.DisableJavascript != nil && *p.DisableJavascript {
+		doc.Find("script,link[rel=\"script\"]").Remove()
+	}
 	convertURLs(doc)
 }
 
@@ -316,9 +322,13 @@ func convertURLs(doc *goquery.Document) {
 				if err != nil || url.IsAbs() {
 					continue
 				}
-				url.Host = doc.Url.Host
-				url.Scheme = doc.Url.Scheme
+				if url.Host == "" {
+					url.Host = doc.Url.Host
+					url.Scheme = doc.Url.Scheme
+				}
 				switch {
+				case url.Scheme == "":
+					url.Scheme = doc.Url.Scheme
 				case url.Path != "" && !strings.HasPrefix(url.Path, "/"):
 					url.Path = doc.Url.Path + "/" + url.Path
 				case url.Fragment != "":
