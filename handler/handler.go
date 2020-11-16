@@ -19,6 +19,9 @@ type Params struct {
 	Logger Logger
 }
 
+const contentType = "application/pdf"
+const fallbackContentType = "application/octet-stream"
+
 func (p *Params) validate() {
 	if p.PoolC == nil {
 		panic("clip/handler.Params: PoolC is nil")
@@ -102,7 +105,12 @@ func New(p Params) http.HandlerFunc {
 		}
 		defer func() { poolC <- struct{}{} }()
 
-		w.Header().Add("Content-Type", "application/pdf")
+		var ct = fallbackContentType
+		if strings.Contains(strings.ToLower(r.Header.Get("accept")),
+			contentType) {
+			ct = contentType
+		}
+		w.Header().Add("content-type", ct)
 
 		bw := bufio.NewWriter(w)
 		defer func() {
@@ -181,12 +189,11 @@ func finalize(w http.ResponseWriter, log Logger, err error) {
 	if msg == "" {
 		msg = http.StatusText(status)
 	}
+	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(status)
+	_, err = w.Write([]byte(msg))
 	if err != nil {
-		_, err := w.Write([]byte(msg))
-		if err != nil {
-			log.Error(fmt.Errorf("write response: %w", err))
-		}
+		log.Error(fmt.Errorf("write response: %w", err))
 	}
 }
 
