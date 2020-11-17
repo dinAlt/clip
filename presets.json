@@ -1,0 +1,30 @@
+{
+  "restfulapi:index": {
+    "url_regexp": "restfulapi\\.net",
+    "query": ".content",
+    "remove_query": ".comment-respond",
+    "custom_styles": ".content{width:auto}"
+  },
+  "habr:post": {
+    "query": "article",
+    "remove_query": ".for_users_only_msg"
+  },
+  "habr:comments": {
+    "query": "#comments",
+    "remove_query": ".for_users_only_msg"
+  },
+  "habr:post_with_comments": {
+    "url_regexp": "habr\\.com",
+    "query": "article,#comments",
+    "remove_query": ".for_users_only_msg"
+  },
+  "medium:article": {
+    "url_regexp": "medium\\.com",
+    "query": "article>div>section>div>div",
+    "custom_styles": "body>div{width:auto !important;max-width:none !important}"
+  },
+  "reddit:post": {
+    "url_regexp": "reddit\\.com",
+    "query": "[data-test-id=\"post-content\"]"
+  }
+}
