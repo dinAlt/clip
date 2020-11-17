@@ -4,24 +4,27 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
 	"github.com/dinalt/clip/handler"
+	"github.com/dinalt/clip/presets"
 )
 
 func HandleRequest(ctx context.Context, req events.APIGatewayProxyRequest) (res events.APIGatewayProxyResponse, err error) {
 	var (
 		body    string
-		status  int
 		headers map[string][]string
+		status  = http.StatusInternalServerError
 	)
 	defer func() {
 		res = events.APIGatewayProxyResponse{
@@ -31,11 +34,18 @@ func HandleRequest(ctx context.Context, req events.APIGatewayProxyRequest) (res 
 			IsBase64Encoded:   status == http.StatusOK,
 		}
 	}()
-
-	err = os.Setenv("WKHTMLTOPDF_PATH", os.Getenv("LAMBDA_TASK_ROOT"))
+	lroot := os.Getenv("LAMBDA_TASK_ROOT")
+	err = os.Setenv("WKHTMLTOPDF_PATH", lroot)
 	if err != nil {
 		err = fmt.Errorf("os.Setenv: %w", err)
 		return
+	}
+	ps, err := presets.FromJSONFile(filepath.Join(lroot, "presets.json"))
+	if err != nil {
+		errLogger.Printf("presets.FromJSONFile: %s", err.Error())
+		if !errors.Is(err, os.ErrNotExist) {
+			return
+		}
 	}
 	r, err := makeReq(ctx, &req)
 	if err != nil {
@@ -44,8 +54,9 @@ func HandleRequest(ctx context.Context, req events.APIGatewayProxyRequest) (res 
 	poolC := make(chan struct{}, 1)
 	poolC <- struct{}{}
 	h := handler.New(handler.Params{
-		PoolC:  poolC,
-		Logger: logger{},
+		PoolC:   poolC,
+		Logger:  logger{},
+		Presets: ps,
 	})
 
 	w := responseWriter{}

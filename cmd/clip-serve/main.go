@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dinalt/clip/handler"
+	"github.com/dinalt/clip/presets"
 )
 
 const (
@@ -20,11 +21,13 @@ const (
 var (
 	maxWorkersCount int
 	serveAddr       string
+	presetsPath     string
 )
 
 func init() {
 	flag.IntVar(&maxWorkersCount, "w", defaultMaxWorkersCount, "maximum workers count")
 	flag.StringVar(&serveAddr, "a", defaultServeAddr, "serve host:port")
+	flag.StringVar(&presetsPath, "p", "", "presets json file")
 }
 
 func main() {
@@ -34,10 +37,21 @@ func main() {
 		poolC <- struct{}{}
 	}
 
+	var (
+		ps  presets.Presets
+		err error
+	)
+	if presetsPath != "" {
+		ps, err = presets.FromJSONFile(presetsPath)
+		if err != nil {
+			log.Fatalf("presets.FromJSONFile: %v", err)
+		}
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/clip", handler.New(handler.Params{
-		PoolC:  poolC,
-		Logger: logger{},
+		PoolC:   poolC,
+		Logger:  logger{},
+		Presets: ps,
 	}))
 
 	srv := http.Server{
@@ -59,7 +73,6 @@ func main() {
 	signal.Notify(sigC, os.Interrupt)
 
 	ctx := context.Background()
-	var err error
 	select {
 	case <-sigC:
 		log.Println("shutting down gracefully")

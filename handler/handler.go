@@ -14,9 +14,15 @@ import (
 	"github.com/dinalt/clip"
 )
 
+type Presets interface {
+	ByName(string) *clip.Params
+	ForSite(string) *clip.Params
+}
+
 type Params struct {
 	PoolC  chan struct{}
 	Logger Logger
+	Presets
 }
 
 const contentType = "application/pdf"
@@ -38,10 +44,16 @@ type dummyLogger struct{}
 func (l dummyLogger) Printf(format string, v ...interface{}) {}
 func (l dummyLogger) Error(err error)                        {}
 
+type dummyPresets struct{}
+
+func (dummyPresets) ByName(string) *clip.Params  { return nil }
+func (dummyPresets) ForSite(string) *clip.Params { return nil }
+
 var (
 	ErrBodyIsEmpty      = errors.New("request body is empty")
 	ErrJSONUnmarshal    = errors.New("json unmarshal failed")
 	ErrMethodNotAllowed = errors.New("method not allowed")
+	ErrNoPreset         = errors.New("preset not found")
 )
 
 type ValueError struct {
@@ -68,6 +80,10 @@ func New(p Params) http.HandlerFunc {
 	if log == nil {
 		log = dummyLogger{}
 	}
+	presets := p.Presets
+	if presets == nil {
+		presets = dummyPresets{}
+	}
 	poolC := p.PoolC
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -83,18 +99,13 @@ func New(p Params) http.HandlerFunc {
 			finalize(w, log, err)
 		}()
 
-		var (
-			url    string
-			params *clip.Params
-		)
+		var pReq *parsedRequest
 
-		url, params, err = parse(r)
+		pReq, err = parse(r)
 		if err != nil {
 			err = fmt.Errorf("parse: %w", err)
 			return
 		}
-
-		log.Printf("request params: %v", params)
 
 		ctx := r.Context()
 		select {
@@ -120,11 +131,30 @@ func New(p Params) http.HandlerFunc {
 			}
 		}()
 
-		err = clip.ToPDFCtx(ctx, url, bw, params)
+		var preset *clip.Params
+		switch {
+		case pReq.Preset == "":
+		case pReq.Preset == "auto":
+			preset = presets.ForSite(pReq.URL)
+		default:
+			preset = presets.ByName(pReq.Preset)
+			if preset == nil {
+				err = fmt.Errorf("%w: %s", ErrNoPreset, pReq.Preset)
+				return
+			}
+		}
+		if preset != nil {
+			pReq.AddFrom(preset)
+		}
+
+		log.Printf("request: url: %s, preset: %s, params: %v",
+			pReq.URL, pReq.Preset, pReq.Params)
+
+		err = clip.ToPDFCtx(ctx, pReq.URL, bw, pReq.Params)
 		if err != nil {
 			var ignored *clip.IgnoredError
 			if !errors.As(err, &ignored) {
-				err = fmt.Errorf("clip.ToPDFCtx(ctx, %s, %v): %w", url, params, err)
+				err = fmt.Errorf("clip.ToPDFCtx(ctx, %s, %v): %w", pReq.URL, pReq.Params, err)
 				return
 			}
 		}
@@ -137,6 +167,7 @@ const (
 	SBadURLScheme
 	SBadURL
 	SValidationFailed
+	SNoPreset
 )
 
 func finalize(w http.ResponseWriter, log Logger, err error) {
@@ -176,6 +207,9 @@ func finalize(w http.ResponseWriter, log Logger, err error) {
 		status = http.StatusBadRequest
 	case errors.Is(err, ErrMethodNotAllowed):
 		status = http.StatusMethodNotAllowed
+	case errors.Is(err, ErrNoPreset):
+		status = SNoPreset
+		msg = "preset not found"
 	case errors.As(err, &validErr):
 		msg = validErr.Message
 		status = SValidationFailed
@@ -200,39 +234,43 @@ func finalize(w http.ResponseWriter, log Logger, err error) {
 	}
 }
 
-func parse(r *http.Request) (url string, _ *clip.Params, _ error) {
+type parsedRequest struct {
+	URL    string `json:"url,omitempty"`
+	Preset string `json:"preset,omitempty"`
+	*clip.Params
+}
+
+func parse(r *http.Request) (*parsedRequest, error) {
 	switch {
 	case r.Method == "POST" && r.Header.Get("content-type") == "application/json":
 		return parseJSON(r)
 	case r.Method == "GET" || r.Method == "POST":
+		fmt.Println("parsing form")
 		return parseForm(r)
 	}
-	return "", nil, ErrMethodNotAllowed
+	return nil, ErrMethodNotAllowed
 }
 
-func parseJSON(r *http.Request) (url string, _ *clip.Params, _ error) {
-	res := struct {
-		URL string `json:"url,omitempty"`
-		*clip.Params
-	}{"", &clip.Params{}}
+func parseJSON(r *http.Request) (*parsedRequest, error) {
+	res := parsedRequest{Params: &clip.Params{}}
 	if r.Body == nil {
-		return "", nil, ErrBodyIsEmpty
+		return nil, ErrBodyIsEmpty
 	}
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return "", nil, fmt.Errorf("ioutil.ReadAll: %w", err)
+		return nil, fmt.Errorf("ioutil.ReadAll: %w", err)
 	}
 	err = json.Unmarshal(b, &res)
 	if err != nil {
-		return "", nil, fmt.Errorf("%w: %s", ErrJSONUnmarshal, err)
+		return nil, fmt.Errorf("%w: %s", ErrJSONUnmarshal, err)
 	}
-	return res.URL, res.Params, nil
+	return &res, nil
 }
 
-func parseForm(r *http.Request) (url string, _ *clip.Params, _ error) {
+func parseForm(r *http.Request) (*parsedRequest, error) {
 	err := r.ParseForm()
 	if err != nil {
-		return "", nil, fmt.Errorf("r.ParseForm: %w", err)
+		return nil, fmt.Errorf("r.ParseForm: %w", err)
 	}
 	res := &clip.Params{}
 	pt := reflect.TypeOf(res).Elem()
@@ -262,7 +300,7 @@ func parseForm(r *http.Request) (url string, _ *clip.Params, _ error) {
 		case reflect.Uint:
 			v, err := strconv.ParseUint(reqv, 10, 32)
 			if err != nil {
-				return "", nil, &ValueError{err, fieldName, "unsigned integer"}
+				return nil, &ValueError{err, fieldName, "unsigned integer"}
 			}
 			uiv := uint(v)
 			newV = reflect.ValueOf(&uiv)
@@ -275,11 +313,16 @@ func parseForm(r *http.Request) (url string, _ *clip.Params, _ error) {
 				boolv = true
 			case "false":
 			default:
-				return "", nil, &ValueError{nil, fieldName, "bool (true or false)"}
+				return nil, &ValueError{nil, fieldName, "bool (true or false)"}
 			}
 			newV = reflect.ValueOf(&boolv)
 		}
 		pv.Elem().Field(i).Set(newV)
 	}
-	return r.Form.Get("url"), res, nil
+
+	return &parsedRequest{
+		Preset: r.Form.Get("preset"),
+		URL:    r.Form.Get("url"),
+		Params: res,
+	}, nil
 }
