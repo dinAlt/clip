@@ -58,6 +58,34 @@ type Params struct {
 	ViewportSize         *string  `json:"viewport_size,omitempty"`
 }
 
+// AddFrom adds missed in p values from o.
+// Don't overwrites existed values.
+func (p *Params) AddFrom(o *Params) {
+	if p == nil {
+		panic("clip.Params.AddFrom: p is nil")
+	}
+	if p == nil {
+		panic("clip.Params.AddFrom: o is nil")
+	}
+	vp := reflect.ValueOf(p).Elem()
+	vo := reflect.ValueOf(o).Elem()
+	fcnt := vp.NumField()
+	for i := 0; i < fcnt; i++ {
+		fp := vp.Field(i)
+		if !fp.IsNil() {
+			continue
+		}
+		fo := vo.Field(i)
+		if fo.IsNil() {
+			continue
+		}
+		fo = fo.Elem()
+		nv := reflect.New(fo.Type())
+		nv.Elem().Set(fo)
+		fp.Set(nv)
+	}
+}
+
 func (p *Params) String() string {
 	if p == nil {
 		return "clip.Params(nil)"
