@@ -272,7 +272,7 @@ func ToPDFCtx(ctx context.Context, url string, w io.Writer, p *Params) error {
 	}
 	p.mergeGen(gen)
 	if PrintArgs {
-		fmt.Fprint(os.Stderr, "wkhtmltopdf args:", gen.ArgString())
+		fmt.Fprintln(os.Stderr, "wkhtmltopdf args:", gen.ArgString())
 	}
 
 	genErr := gen.Create() // this almost always return some error (underlied process stderr output)
