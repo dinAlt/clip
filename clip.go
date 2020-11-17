@@ -50,7 +50,7 @@ type Params struct {
 	// page options
 	DisableExternalLinks *bool    `json:"disable_external_links,omitempty"`
 	DisableInternalLinks *bool    `json:"disable_internal_links,omitempty"`
-	DisableJavascript    *bool    `json:"disable_javascript,omitempty"`
+	EnableJavascript     *bool    `json:"enable_javascript,omitempty"`
 	NoBackground         *bool    `json:"no_background,omitempty"`
 	NoImages             *bool    `json:"no_images,omitempty"`
 	PageOffset           *uint    `json:"page_offset,omitempty"`
@@ -166,9 +166,7 @@ func (p *Params) mergePageOptions(o *wkhtmltopdf.PageOptions) { //nolint:unused
 	if p.DisableInternalLinks != nil {
 		o.DisableInternalLinks.Set(*p.DisableInternalLinks)
 	}
-	if p.DisableJavascript != nil {
-		o.DisableJavascript.Set(*p.DisableJavascript)
-	}
+	o.DisableJavascript.Set(p.EnableJavascript == nil || !*p.EnableJavascript)
 	if p.NoBackground != nil {
 		o.NoBackground.Set(*p.NoBackground)
 	}
