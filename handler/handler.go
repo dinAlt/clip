@@ -41,8 +41,8 @@ type Logger interface {
 
 type dummyLogger struct{}
 
-func (l dummyLogger) Printf(format string, v ...interface{}) {}
-func (l dummyLogger) Error(err error)                        {}
+func (dummyLogger) Printf(string, ...interface{}) {}
+func (dummyLogger) Error(error)                   {}
 
 type dummyPresets struct{}
 
