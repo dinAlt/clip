@@ -27,3 +27,4 @@ main
 wkhtmltopdf
 /clip-lambda
 *.zip
+*.html
