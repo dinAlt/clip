@@ -5,14 +5,30 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	neturl "net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"reflect"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
 )
+
+var (
+	PrintArgs           bool   // print wkhtmltopdf args
+	SaveProcessedHTMLTo string // save processed HTML to directory (used if not empty)
+)
+
+func init() {
+	if os.Getenv("CLIP_PRINT_ARGS") != "" {
+		PrintArgs = true
+	}
+	SaveProcessedHTMLTo = os.Getenv("CLIP_SAVE_HTML")
+}
 
 // Params are used to tweak ToPDF output.
 type Params struct {
@@ -232,6 +248,10 @@ func ToPDFCtx(ctx context.Context, url string, w io.Writer, p *Params) error {
 		pr := wkhtmltopdf.NewPageReader(r)
 		gen.AddPage(pr)
 	}
+	if PrintArgs {
+		fmt.Fprint(os.Stderr, "wkhtmltopdf args:", gen.ArgString())
+	}
+
 	genErr := gen.Create() // this almost always return some error (underlied process stderr output)
 	select {
 	case <-ctx.Done():
@@ -289,7 +309,37 @@ func getHTML(ctx context.Context, url *neturl.URL, p *Params) (string, error) {
 		return "", fmt.Errorf("doc.Html: %w", err)
 	}
 
+	err = dump(url, txt)
+	if err != nil {
+		return "", err
+	}
+
 	return txt, nil
+}
+
+func dump(url *neturl.URL, html string) error {
+	if SaveProcessedHTMLTo == "" {
+		return nil
+	}
+	dir := filepath.Join(SaveProcessedHTMLTo, url.Host)
+	err := os.MkdirAll(dir, 0755) //nolint:gosec
+	if err != nil {
+		return fmt.Errorf("os.MkdirAll: %w", err)
+	}
+	_, fn := path.Split(url.Path)
+
+	switch {
+	case fn == "":
+		fn = "index.html"
+	case strings.ToLower(path.Ext(fn)) != ".html":
+		fn += ".html"
+	}
+
+	err = ioutil.WriteFile(filepath.Join(dir, fn), []byte(html), 0644) //nolint:gosec
+	if err != nil {
+		return fmt.Errorf("os.WriteFile: %w", err)
+	}
+	return nil
 }
 
 // applyChanges removes elements not matching css queries in qs from DOM body.
