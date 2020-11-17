@@ -86,6 +86,7 @@ func (p *Params) AddFrom(o *Params) {
 	}
 }
 
+// String pretty prints struct values
 func (p *Params) String() string {
 	if p == nil {
 		return "clip.Params(nil)"
