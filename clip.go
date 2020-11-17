@@ -169,6 +169,7 @@ func (p *Params) merge(g *wkhtmltopdf.PDFGenerator) {
 var (
 	ErrBadStatus       = errors.New("bad status")
 	ErrNoQueryResult   = errors.New("no result")
+	ErrNoURL           = errors.New("url is required")
 	ErrBadURLScheme    = errors.New("bad URL scheme")
 	ErrInvalidPageSize = errors.New("invalid page size")
 )
@@ -222,7 +223,9 @@ func ToPDFCtx(ctx context.Context, url string, w io.Writer, p *Params) error {
 	if err != nil {
 		return err
 	}
-
+	if url == "" {
+		return ErrNoURL
+	}
 	gen, err := wkhtmltopdf.NewPDFGenerator()
 	if err != nil {
 		return fmt.Errorf("wkhtmltopdf.NewPDFGenerator: %w", err)

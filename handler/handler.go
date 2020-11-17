@@ -159,6 +159,9 @@ func finalize(w http.ResponseWriter, log Logger, err error) {
 	case errors.Is(err, clip.ErrBadStatus):
 		msg = "server returned non 2xx status for requested url"
 		status = SBadResponse
+	case errors.Is(err, clip.ErrNoURL):
+		msg = "url is required"
+		status = http.StatusBadRequest
 	case errors.Is(err, clip.ErrBadURLScheme):
 		msg = "bad URL scheme: only http and https are supported"
 		status = SBadURLScheme
