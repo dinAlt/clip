@@ -307,6 +307,7 @@ func getHTML(ctx context.Context, url *neturl.URL, p *Params) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("http.NewRequestWithContext: %w", err)
 	}
+	req.Header.Set("user-agent", "clip-to-pdf/1.0")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("http.DefaultClient.Do: %w", err)
