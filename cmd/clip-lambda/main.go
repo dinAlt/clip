@@ -11,11 +11,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
 	"github.com/dinalt/clip/handler"
-
-	"github.com/aws/aws-lambda-go/events"
 )
 
 func HandleRequest(ctx context.Context, req events.APIGatewayProxyRequest) (res events.APIGatewayProxyResponse, err error) {
