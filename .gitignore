@@ -28,3 +28,4 @@ wkhtmltopdf
 /clip-lambda
 *.zip
 *.html
+*.db
