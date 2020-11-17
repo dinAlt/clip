@@ -94,11 +94,10 @@ func (p *Params) validate() error {
 }
 
 func (p *Params) skipDOMProcess() bool {
-	return p.Query == nil && p.RemoveQuery == nil &&
-		p.CustomStyles == nil && p.DisableJavascript == nil
+	return p.Query == nil && p.RemoveQuery == nil && p.CustomStyles == nil
 }
 
-func (p *Params) merge(g *wkhtmltopdf.PDFGenerator) {
+func (p *Params) mergeGen(g *wkhtmltopdf.PDFGenerator) {
 	if p.Grayscale != nil {
 		g.Grayscale.Set(*p.Grayscale)
 	}
@@ -129,40 +128,30 @@ func (p *Params) merge(g *wkhtmltopdf.PDFGenerator) {
 	if p.Title != nil {
 		g.Title.Set(*p.Title)
 	}
+}
 
+func (p *Params) mergePageOptions(o *wkhtmltopdf.PageOptions) { //nolint:unused
 	if p.DisableExternalLinks != nil {
-		g.Cover.DisableExternalLinks.Set(*p.DisableExternalLinks)
-		g.TOC.DisableExternalLinks.Set(*p.DisableExternalLinks)
+		o.DisableExternalLinks.Set(*p.DisableExternalLinks)
 	}
 	if p.DisableInternalLinks != nil {
-		g.Cover.DisableInternalLinks.Set(*p.DisableInternalLinks)
-		g.TOC.DisableInternalLinks.Set(*p.DisableInternalLinks)
+		o.DisableInternalLinks.Set(*p.DisableInternalLinks)
 	}
 	if p.DisableJavascript != nil {
-		g.Cover.DisableJavascript.Set(*p.DisableJavascript)
-		g.TOC.DisableJavascript.Set(*p.DisableJavascript)
-		g.Cover.JavascriptDelay.Set(1)
-		g.TOC.JavascriptDelay.Set(1)
+		o.DisableJavascript.Set(*p.DisableJavascript)
 	}
 	if p.NoBackground != nil {
-		g.Cover.NoBackground.Set(*p.NoBackground)
-		g.TOC.NoBackground.Set(*p.NoBackground)
+		o.NoBackground.Set(*p.NoBackground)
 	}
 	if p.NoImages != nil {
-		g.Cover.NoImages.Set(*p.NoImages)
-		g.TOC.NoImages.Set(*p.NoImages)
+		o.NoImages.Set(*p.NoImages)
 	}
 	if p.PageOffset != nil {
-		g.Cover.PageOffset.Set(*p.PageOffset)
-		g.TOC.PageOffset.Set(*p.PageOffset)
+		o.PageOffset.Set(*p.PageOffset)
 	}
 	if p.Zoom != nil {
-		g.Cover.Zoom.Set(*p.Zoom)
-		g.TOC.Zoom.Set(*p.Zoom)
+		o.Zoom.Set(*p.Zoom)
 	}
-
-	g.Cover.LoadErrorHandling.Set("ignore")
-	g.TOC.LoadErrorHandling.Set("ignore")
 }
 
 // Package errors.
@@ -237,11 +226,12 @@ func ToPDFCtx(ctx context.Context, url string, w io.Writer, p *Params) error {
 	if tURL.Scheme != "http" && tURL.Scheme != "https" { // ensure user not trying to get file from our local disk
 		return fmt.Errorf("%w: %s", ErrBadURLScheme, tURL.Scheme)
 	}
-	p.merge(gen)
 
 	switch {
 	case p.skipDOMProcess():
-		gen.AddPage(wkhtmltopdf.NewPage(url))
+		pg := wkhtmltopdf.NewPage(url)
+		p.mergePageOptions(&pg.PageOptions)
+		gen.AddPage(pg)
 	default:
 		txt, err := getHTML(ctx, tURL, p)
 		if err != nil {
@@ -249,8 +239,10 @@ func ToPDFCtx(ctx context.Context, url string, w io.Writer, p *Params) error {
 		}
 		r := strings.NewReader(txt)
 		pr := wkhtmltopdf.NewPageReader(r)
+		p.mergePageOptions(&pr.PageOptions)
 		gen.AddPage(pr)
 	}
+	p.mergeGen(gen)
 	if PrintArgs {
 		fmt.Fprint(os.Stderr, "wkhtmltopdf args:", gen.ArgString())
 	}
@@ -362,9 +354,6 @@ func applyChanges(doc *goquery.Document, p *Params) {
 	}
 	if p.CustomStyles != nil && len(*p.CustomStyles) > 0 {
 		doc.Find("head").AppendHtml("<style>" + *p.CustomStyles + "</style>")
-	}
-	if p.DisableJavascript != nil && *p.DisableJavascript {
-		doc.Find("script,link[rel=\"script\"]").Remove()
 	}
 	convertURLs(doc)
 }
