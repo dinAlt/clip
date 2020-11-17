@@ -120,11 +120,11 @@ func New(p Params) http.HandlerFunc {
 			}
 		}()
 
-		err = clip.ConvertCtx(ctx, url, bw, params)
+		err = clip.ToPDFCtx(ctx, url, bw, params)
 		if err != nil {
 			var ignored *clip.IgnoredError
 			if !errors.As(err, &ignored) {
-				err = fmt.Errorf("clip.ConvertCtx(ctx, %s, %v): %w", url, params, err)
+				err = fmt.Errorf("clip.ToPDFCtx(ctx, %s, %v): %w", url, params, err)
 				return
 			}
 		}

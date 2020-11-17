@@ -14,7 +14,7 @@ import (
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
 )
 
-// Params are used to tweak Convert output.
+// Params are used to tweak ToPDF output.
 type Params struct {
 	Query          *string `json:"query,omitempty"`           // css selector to be included in resulted PDF document
 	RemoveQuery    *string `json:"remove_query,omitempty"`    // css selector of elements to be removed
@@ -186,21 +186,21 @@ func (e *ValidationError) Error() string {
 	return fmt.Sprintf("validation error: %s", e.Message)
 }
 
-func Convert(url string, w io.Writer, p *Params) error {
-	return ConvertCtx(context.Background(), url, w, p)
+func ToPDF(url string, w io.Writer, p *Params) error {
+	return ToPDFCtx(context.Background(), url, w, p)
 }
 
-// ConvertCtx downloads page from url, converts it to PDF via wkhtmltopdf
+// ToPDFCtx downloads page from url, converts it to PDF via wkhtmltopdf
 // and writes result to w.
-func ConvertCtx(ctx context.Context, url string, w io.Writer, p *Params) error {
+func ToPDFCtx(ctx context.Context, url string, w io.Writer, p *Params) error {
 	if ctx == nil {
-		panic("clip.ConvertCtx: ctx is nil")
+		panic("clip.ToPDFCtx: ctx is nil")
 	}
 	if w == nil {
-		panic("clip.ConvertCtx: w is nil")
+		panic("clip.ToPDFCtx: w is nil")
 	}
 	if p == nil {
-		panic("clip.ConvertCtx: params is nil")
+		panic("clip.ToPDFCtx: params is nil")
 	}
 	err := p.validate()
 	if err != nil {
