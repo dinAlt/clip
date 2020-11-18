@@ -1,30 +1,40 @@
 {
-  "restfulapi:index": {
-    "url_regexp": "restfulapi\\.net",
-    "query": ".content",
-    "remove_query": ".comment-respond",
-    "custom_styles": ".content{width:auto}"
+  "margins:a4": {
+    "margin_top": 12,
+    "margin_bottom": 12,
+    "margin_left": 25,
+    "margin_right": 25
+  },
+  "medium:post": {
+    "url_regexp": "medium\\.com",
+    "query": "article>div>section>div>div",
+    "custom_styles": "body>div{width:auto!important;max-width:none!important;margin:0!important}h1{margin-top:0!important}"
   },
   "habr:post": {
+    "url_regexp": "habr\\.com",
     "query": "article",
-    "remove_query": ".for_users_only_msg"
+    "remove": ".for_users_only_msg"
   },
   "habr:comments": {
     "query": "#comments",
-    "remove_query": ".for_users_only_msg"
+    "remove": ".for_users_only_msg"
   },
   "habr:post_with_comments": {
-    "url_regexp": "habr\\.com",
     "query": "article,#comments",
-    "remove_query": ".for_users_only_msg"
+    "remove": ".for_users_only_msg"
   },
-  "medium:article": {
-    "url_regexp": "medium\\.com",
-    "query": "article>div>section>div>div",
-    "custom_styles": "body>div{width:auto !important;max-width:none !important}"
+  "yandex_zen:article": {
+    "url_regexp": "zen\\.yandex\\.ru",
+    "query": ".article__middle",
+    "no_break_after": "h3",
+    "no_break_inside": "figure",
+    "custom_styles": "img{opacity:1!important}.article__middle{width:auto!important}.article-header{margin-top:0!important}",
+    "force_image_loading": true
   },
-  "reddit:post": {
-    "url_regexp": "reddit\\.com",
-    "query": "[data-test-id=\"post-content\"]"
+  "restfulapi:index": {
+    "url_regexp": "restfulapi\\.net",
+    "query": ".content",
+    "remove": ".comment-respond",
+    "custom_styles": ".content{width:auto}"
   }
 }
