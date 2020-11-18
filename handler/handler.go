@@ -14,6 +14,20 @@ import (
 	"github.com/dinalt/clip"
 )
 
+const (
+	SBadResponse = 701 + iota
+	SNoResult
+	SBadURLScheme
+	SBadURL
+	SValidationFailed
+	SNoPreset
+)
+
+const (
+	contentType         = "application/pdf"
+	fallbackContentType = "application/octet-stream"
+)
+
 type Presets interface {
 	ByName(string) *clip.Params
 	ForSite(string) *clip.Params
@@ -24,9 +38,6 @@ type Params struct {
 	Logger Logger
 	Presets
 }
-
-const contentType = "application/pdf"
-const fallbackContentType = "application/octet-stream"
 
 func (p *Params) validate() {
 	if p.PoolC == nil {
@@ -39,29 +50,19 @@ type Logger interface {
 	Error(err error)
 }
 
-type dummyLogger struct{}
-
-func (dummyLogger) Printf(string, ...interface{}) {}
-func (dummyLogger) Error(error)                   {}
-
-type dummyPresets struct{}
-
-func (dummyPresets) ByName(string) *clip.Params  { return nil }
-func (dummyPresets) ForSite(string) *clip.Params { return nil }
-
 var (
 	ErrBodyIsEmpty      = errors.New("request body is empty")
 	ErrJSONUnmarshal    = errors.New("json unmarshal failed")
 	ErrMethodNotAllowed = errors.New("method not allowed")
 )
 
-type ValueError struct {
+type ParamError struct {
 	Inner    error
 	Param    string
 	Required string
 }
 
-func (e *ValueError) Error() string {
+func (e *ParamError) Error() string {
 	if e.Inner == nil {
 		return fmt.Sprintf("param: %s, required type: %s", e.Param, e.Required)
 	}
@@ -69,7 +70,7 @@ func (e *ValueError) Error() string {
 		e.Param, e.Required)
 }
 
-func (e *ValueError) Unwrap() error {
+func (e *ParamError) Unwrap() error {
 	return e.Inner
 }
 
@@ -155,15 +156,6 @@ func New(p Params) http.HandlerFunc {
 	}
 }
 
-const (
-	SBadResponse = 701 + iota
-	SNoResult
-	SBadURLScheme
-	SBadURL
-	SValidationFailed
-	SNoPreset
-)
-
 func finalize(w http.ResponseWriter, log Logger, err error) {
 	if err != nil {
 		log.Error(err)
@@ -173,59 +165,65 @@ func finalize(w http.ResponseWriter, log Logger, err error) {
 		return
 	}
 
+	status, body := mapError(err)
+
+	w.Header().Set("content-type", "text/plain")
+	w.WriteHeader(status)
+	_, err = w.Write([]byte(body))
+	if err != nil {
+		log.Error(fmt.Errorf("write response: %w", err))
+	}
+}
+
+func mapError(err error) (status int, body string) {
 	var (
-		msg      string
-		urlErr   *clip.URLError
-		validErr *clip.ValidationError
-		valErr   *ValueError
-		status   int
+		urlErr         *clip.URLError
+		validErr       *clip.ValidationError
+		valErr         *ParamError
+		presetNotFound PresetNotFoundError
 	)
 	switch {
 	case errors.Is(err, clip.ErrBadStatus):
-		msg = "server returned non 2xx status for requested url"
+		body = "server returned non 2xx status for requested url"
 		status = SBadResponse
 	case errors.Is(err, clip.ErrNoURL):
-		msg = "url is required"
+		body = "url is required"
 		status = http.StatusBadRequest
 	case errors.Is(err, clip.ErrBadURLScheme):
-		msg = "bad URL scheme: only http and https are supported"
+		body = "bad URL scheme: only http and https are supported"
 		status = SBadURLScheme
 	case errors.Is(err, clip.ErrNoQueryResult):
-		msg = "no result elements for given selectors"
+		body = "no result elements for given selectors"
 		status = SNoResult
 	case errors.Is(err, ErrBodyIsEmpty):
-		msg = "request body is empty"
+		body = "request body is empty"
 		status = http.StatusBadRequest
 	case errors.Is(err, ErrJSONUnmarshal):
-		msg = "bad json value"
+		body = "bad json value"
 		status = http.StatusBadRequest
 	case errors.Is(err, ErrMethodNotAllowed):
 		status = http.StatusMethodNotAllowed
 	case errors.As(err, &presetNotFound):
-		msg = "preset not found: " + string(presetNotFound)
+		body = "preset not found: " + string(presetNotFound)
 		status = SNoPreset
 	case errors.As(err, &validErr):
-		msg = validErr.Message
+		body = validErr.Message
 		status = SValidationFailed
 	case errors.As(err, &urlErr):
-		msg = "malformed url"
+		body = "malformed url"
 		status = SBadURL
 	case errors.As(err, &valErr):
-		msg = fmt.Sprintf("validation error: param %s requires value of %s",
+		body = fmt.Sprintf("validation error: param %s requires value of %s",
 			valErr.Param, valErr.Required)
 		status = SValidationFailed
 	default:
 		status = http.StatusInternalServerError
 	}
-	if msg == "" {
-		msg = http.StatusText(status)
+	if body == "" {
+		body = http.StatusText(status)
 	}
-	w.Header().Set("content-type", "text/plain")
-	w.WriteHeader(status)
-	_, err = w.Write([]byte(msg))
-	if err != nil {
-		log.Error(fmt.Errorf("write response: %w", err))
-	}
+
+	return
 }
 
 type parsedRequest struct {
@@ -317,7 +315,7 @@ func parseForm(r *http.Request) (*parsedRequest, error) {
 		case reflect.Uint:
 			v, err := strconv.ParseUint(reqv, 10, 32)
 			if err != nil {
-				return nil, &ValueError{err, fieldName, "unsigned integer"}
+				return nil, &ParamError{err, fieldName, "unsigned integer"}
 			}
 			uiv := uint(v)
 			newV = reflect.ValueOf(&uiv)
@@ -330,7 +328,7 @@ func parseForm(r *http.Request) (*parsedRequest, error) {
 				boolv = true
 			case "false":
 			default:
-				return nil, &ValueError{nil, fieldName, "bool (true or false)"}
+				return nil, &ParamError{nil, fieldName, "bool (true or false)"}
 			}
 			newV = reflect.ValueOf(&boolv)
 		}
@@ -343,3 +341,13 @@ func parseForm(r *http.Request) (*parsedRequest, error) {
 		Params:  res,
 	}, nil
 }
+
+type dummyLogger struct{}
+
+func (dummyLogger) Printf(string, ...interface{}) {}
+func (dummyLogger) Error(error)                   {}
+
+type dummyPresets struct{}
+
+func (dummyPresets) ByName(string) *clip.Params  { return nil }
+func (dummyPresets) ForSite(string) *clip.Params { return nil }
