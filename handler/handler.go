@@ -53,7 +53,6 @@ var (
 	ErrBodyIsEmpty      = errors.New("request body is empty")
 	ErrJSONUnmarshal    = errors.New("json unmarshal failed")
 	ErrMethodNotAllowed = errors.New("method not allowed")
-	ErrNoPreset         = errors.New("preset not found")
 )
 
 type ValueError struct {
@@ -72,6 +71,12 @@ func (e *ValueError) Error() string {
 
 func (e *ValueError) Unwrap() error {
 	return e.Inner
+}
+
+type PresetNotFoundError string
+
+func (e PresetNotFoundError) Error() string {
+	return "preset not found: " + string(e)
 }
 
 func New(p Params) http.HandlerFunc {
@@ -207,9 +212,9 @@ func finalize(w http.ResponseWriter, log Logger, err error) {
 		status = http.StatusBadRequest
 	case errors.Is(err, ErrMethodNotAllowed):
 		status = http.StatusMethodNotAllowed
-	case errors.Is(err, ErrNoPreset):
+	case errors.As(err, &presetNotFound):
+		msg = "preset not found: " + string(presetNotFound)
 		status = SNoPreset
-		msg = "preset not found"
 	case errors.As(err, &validErr):
 		msg = validErr.Message
 		status = SValidationFailed
