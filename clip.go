@@ -32,10 +32,14 @@ func init() {
 
 // Params are used to tweak ToPDF output.
 type Params struct {
-	Query          *string `json:"query,omitempty"`           // css selector to be included in resulted PDF document
-	RemoveQuery    *string `json:"remove_query,omitempty"`    // css selector of elements to be removed
-	CustomStyles   *string `json:"custom_styles,omitempty"`   // custom css styles to be injected into doc
-	WithContainers *bool   `json:"with_containers,omitempty"` // preserve all containert from document body to selector query result
+	Query             *string `json:"query,omitempty"`               // css selector to be included in resulted PDF document
+	Remove            *string `json:"remove,omitempty"`              // css selector of elements to be removed
+	NoBreakBefore     *string `json:"no_break_before,omitempty"`     // css selector for elements to set break-before:avoid-page
+	NoBreakInside     *string `json:"no_break_inside,omitempty"`     // css selector for elements to set break-inside:avoid-page
+	NoBreakAfter      *string `json:"no_break_after,omitempty"`      // css selector for elements to set break-after:avoid-page
+	CustomStyles      *string `json:"custom_styles,omitempty"`       // custom css styles to be injected into doc
+	WithContainers    *bool   `json:"with_containers,omitempty"`     // preserve all containert from document body to selector query result
+	ForceImageLoading *bool   `json:"force_image_loading,omitempty"` // replace img[src] by img[data-src] conetnt
 	// global options
 	Grayscale    *bool   `json:"grayscale,omitempty"`
 	MarginBottom *uint   `json:"margin_bottom,omitempty"`
@@ -123,7 +127,10 @@ func (p *Params) validate() error {
 }
 
 func (p *Params) skipDOMProcess() bool {
-	return p.Query == nil && p.RemoveQuery == nil && p.CustomStyles == nil
+	return p.Query == nil && p.Remove == nil &&
+		p.CustomStyles == nil && p.ForceImageLoading == nil &&
+		p.NoBreakBefore != nil && p.NoBreakInside == nil &&
+		p.NoBreakAfter != nil
 }
 
 func (p *Params) mergeGen(g *wkhtmltopdf.PDFGenerator) {
@@ -381,11 +388,33 @@ func applyChanges(doc *goquery.Document, p *Params) {
 		body.Children().Remove()
 		body.AppendSelection(sel)
 	}
-	if p.RemoveQuery != nil && len(*p.RemoveQuery) > 0 {
-		doc.Find(*p.RemoveQuery).Remove()
+	if p.Remove != nil && len(*p.Remove) > 0 {
+		doc.Find(*p.Remove).Remove()
+	}
+	if p.ForceImageLoading != nil && *p.ForceImageLoading {
+		doc.Find("img").Each(func(_ int, sel *goquery.Selection) {
+			v, _ := sel.Attr("data-src")
+			if v == "" {
+				return
+			}
+			sel.SetAttr("src", v)
+		})
+	}
+	head := doc.Find("head")
+	if p.NoBreakBefore != nil && len(*p.NoBreakBefore) > 0 {
+		head.AppendHtml("<style>" + *p.NoBreakBefore +
+			"{page-break-before:avoid!important;break-before:avoid-page!important}</style>")
+	}
+	if p.NoBreakInside != nil && len(*p.NoBreakInside) > 0 {
+		head.AppendHtml("<style>" + *p.NoBreakInside +
+			"{page-break-inside:avoid!important;break-inside:avoid-page!important}</style>")
+	}
+	if p.NoBreakAfter != nil && len(*p.NoBreakAfter) > 0 {
+		head.AppendHtml("<style>" + *p.NoBreakAfter +
+			"{page-break-after:avoid!important;break-after:avoid-page!important}</style>")
 	}
 	if p.CustomStyles != nil && len(*p.CustomStyles) > 0 {
-		doc.Find("head").AppendHtml("<style>" + *p.CustomStyles + "</style>")
+		head.AppendHtml("<style>" + *p.CustomStyles + "</style>")
 	}
 	convertURLs(doc)
 }
