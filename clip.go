@@ -299,7 +299,7 @@ func ToPDFCtx(ctx context.Context, url string, w io.Writer, p *Params) error {
 	return nil
 }
 
-// getHTML returns html string filtered by p.Selectors.
+// getHTML returns processed with Params from p html string
 func getHTML(ctx context.Context, url *neturl.URL, p *Params) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url.String(), nil)
 	if err != nil {
@@ -340,6 +340,10 @@ func getHTML(ctx context.Context, url *neturl.URL, p *Params) (string, error) {
 	return txt, nil
 }
 
+// dump html to <SaveProcessedHTMLTo>/<domain name> folder
+// if SaveProcessedHTMLTo != "". Name of file will be set to
+// last segment of path with .html extension, or index.html,
+// if path is empty.
 func dump(url *neturl.URL, html string) error {
 	if SaveProcessedHTMLTo == "" {
 		return nil
