@@ -360,7 +360,7 @@ func dump(url *neturl.URL, html string) error {
 	if err != nil {
 		return fmt.Errorf("os.MkdirAll: %w", err)
 	}
-	_, fn := path.Split(url.Path)
+	_, fn := path.Split(strings.TrimSuffix(url.Path, "/"))
 
 	switch {
 	case fn == "":
