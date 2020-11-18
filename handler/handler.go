@@ -111,6 +111,11 @@ func New(p Params) http.HandlerFunc {
 			err = fmt.Errorf("parse: %w", err)
 			return
 		}
+		err = pReq.buildParams(presets)
+		if err != nil {
+			err = fmt.Errorf("pReq.buildParams: %w", err)
+			return
+		}
 
 		ctx := r.Context()
 		select {
@@ -136,24 +141,8 @@ func New(p Params) http.HandlerFunc {
 			}
 		}()
 
-		var preset *clip.Params
-		switch {
-		case pReq.Preset == "":
-		case pReq.Preset == "auto":
-			preset = presets.ForSite(pReq.URL)
-		default:
-			preset = presets.ByName(pReq.Preset)
-			if preset == nil {
-				err = fmt.Errorf("%w: %s", ErrNoPreset, pReq.Preset)
-				return
-			}
-		}
-		if preset != nil {
-			pReq.AddFrom(preset)
-		}
-
-		log.Printf("request: url: %s, preset: %s, params: %v",
-			pReq.URL, pReq.Preset, pReq.Params)
+		log.Printf("request: url: %s, presets: %s, params: %v",
+			pReq.URL, pReq.Presets, pReq.Params)
 
 		err = clip.ToPDFCtx(ctx, pReq.URL, bw, pReq.Params)
 		if err != nil {
@@ -240,9 +229,32 @@ func finalize(w http.ResponseWriter, log Logger, err error) {
 }
 
 type parsedRequest struct {
-	URL    string `json:"url,omitempty"`
-	Preset string `json:"preset,omitempty"`
+	URL     string `json:"url,omitempty"`
+	Presets string `json:"presets,omitempty"`
 	*clip.Params
+}
+
+func (r *parsedRequest) buildParams(p Presets) error {
+	if r.Presets == "" {
+		return nil
+	}
+	list := strings.Split(r.Presets, ",")
+	for i := range list {
+		var preset *clip.Params
+		switch {
+		case list[i] == "auto":
+			preset = p.ForSite(r.URL)
+		case list[i] != "":
+			preset = p.ByName(list[i])
+			if preset == nil {
+				return PresetNotFoundError(list[i])
+			}
+		}
+		if preset != nil {
+			r.AddFrom(preset)
+		}
+	}
+	return nil
 }
 
 func parse(r *http.Request) (*parsedRequest, error) {
@@ -326,8 +338,8 @@ func parseForm(r *http.Request) (*parsedRequest, error) {
 	}
 
 	return &parsedRequest{
-		Preset: r.Form.Get("preset"),
-		URL:    r.Form.Get("url"),
-		Params: res,
+		Presets: r.Form.Get("presets"),
+		URL:     r.Form.Get("url"),
+		Params:  res,
 	}, nil
 }
