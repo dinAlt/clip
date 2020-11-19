@@ -32,14 +32,14 @@ func init() {
 
 // Params are used to tweak ToPDF output.
 type Params struct {
-	Query             *string `json:"query,omitempty"`               // css selector to be included in resulted PDF document
-	Remove            *string `json:"remove,omitempty"`              // css selector of elements to be removed
-	NoBreakBefore     *string `json:"no_break_before,omitempty"`     // css selector for elements to set break-before:avoid-page
-	NoBreakInside     *string `json:"no_break_inside,omitempty"`     // css selector for elements to set break-inside:avoid-page
-	NoBreakAfter      *string `json:"no_break_after,omitempty"`      // css selector for elements to set break-after:avoid-page
-	CustomStyles      *string `json:"custom_styles,omitempty"`       // custom css styles to be injected into doc
-	WithContainers    *bool   `json:"with_containers,omitempty"`     // preserve all containert from document body to selector query result
-	ForceImageLoading *bool   `json:"force_image_loading,omitempty"` // replace img[src] by img[data-src] conetnt
+	Query             *string `json:"query,omitempty" desc:"elements to include in result document"`                                  // css selector to be included in resulted PDF document
+	Remove            *string `json:"remove,omitempty" desc:"elements to remove from result document"`                                // css selector of elements to be removed
+	NoBreakBefore     *string `json:"no_break_before,omitempty" desc:"elements to disable break page before"`                         // css selector for elements to set break-before:avoid-page
+	NoBreakInside     *string `json:"no_break_inside,omitempty" desc:"elements to disable break page inside"`                         // css selector for elements to set break-inside:avoid-page
+	NoBreakAfter      *string `json:"no_break_after,omitempty" desc:"elements to disable break page after"`                           // css selector for elements to set break-after:avoid-page
+	CustomStyles      *string `json:"custom_styles,omitempty" desc:"custom css stylesheet (will be included in <head>)"`              // custom css styles to be injected into doc
+	WithContainers    *bool   `json:"with_containers,omitempty" desc:"preserve doc containers structure (useful when -query is set)"` // preserve all containert from document body to selector query result
+	ForceImageLoading *bool   `json:"force_image_loading,omitempty" desc:"replace img[src} attribute value by value of data-src"`     // replace img[src] by img[data-src] conetnt
 	// global options
 	Grayscale    *bool   `json:"grayscale,omitempty"`
 	MarginBottom *uint   `json:"margin_bottom,omitempty"`
