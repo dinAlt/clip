@@ -27,7 +27,7 @@ func init() {
 	}
 	presetsFile := filepath.Join(dir, "clip", "presets.json")
 	flag.StringVar(&presetsPathFlag, "presets-path", presetsFile,
-		"list of used presets (see -presets-path)")
+		"path to presets file")
 	flag.BoolVar(&overwriteFlag, "o", false, "overwrite output file if exists")
 	flag.BoolVar(&helpFlag, "h", false, "print this help message")
 	flag.BoolVar(&helpFlag, "help", false, "print this help message")
