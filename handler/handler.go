@@ -227,16 +227,16 @@ func mapError(err error) (status int, body string) {
 }
 
 type parsedRequest struct {
-	URL     string `json:"url,omitempty"`
-	Presets string `json:"presets,omitempty"`
+	URL     string   `json:"url,omitempty"`
+	Presets []string `json:"presets,omitempty"`
 	*clip.Params
 }
 
 func (r *parsedRequest) buildParams(p Presets) error {
-	if r.Presets == "" {
+	if len(r.Presets) == 0 {
 		return nil
 	}
-	list := strings.Split(r.Presets, ",")
+	list := r.Presets
 	for i := range list {
 		var preset *clip.Params
 		switch {
@@ -336,7 +336,7 @@ func parseForm(r *http.Request) (*parsedRequest, error) {
 	}
 
 	return &parsedRequest{
-		Presets: r.Form.Get("presets"),
+		Presets: strings.Split(r.Form.Get("presets"), ","),
 		URL:     r.Form.Get("url"),
 		Params:  res,
 	}, nil
