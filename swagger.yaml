@@ -2,6 +2,7 @@ swagger: "2.0"
 info:
   title: "Clip to PDF"
   version: "1.0.0"
+  description: "Clip entire web page or its part into PDF file."
   contact:
     name: Kirill Kuryanov
     email: dinalt2@gmail.com
@@ -13,8 +14,184 @@ consumes:
   - application/json
 paths:
   /clip:
+    get:
+      description: "Clip webpage to PDF via GET"
+      operationId: getClip
+      parameters:
+        - in: header
+          name: Accept
+          type: string
+          enum: [application/pdf, application/octet-stream]
+          required: true
+        - in: query
+          name: url
+          type: string
+          required: true
+        - in: query
+          name: presets
+          type: array
+          items:
+            type: string
+            enum:
+              - margins:a4
+              - auto
+              - medium:post
+              - habr:post
+              - habr:comments
+              - habr:post_with_comments
+              - yandex_zen:post
+        - in: query
+          name: query
+          description: elements to include in result document
+          type: string
+        - in: query
+          name: remove
+          description: elements to remove from result document
+          type: string
+        - in: query
+          name: no_break_before
+          description: elements to disable break page before
+          type: string
+        - in: query
+          name: no_break_inside
+          description: elements to disable break page inside
+          type: string
+        - in: query
+          name: no_break_after
+          description: elements to disable break page after
+          type: string
+        - in: query
+          name: custom_styles
+          description: custom css style sheet (will be included in <head>)
+          type: string
+        - in: query
+          name: with_containers
+          description: preserve doc containers structure (useful when query param is not empty)
+          type: boolean
+        - in: query
+          name: force_image_loading
+          description: replace img[src} attribute value by value of data-src
+          type: boolean
+        - in: query
+          name: grayscale
+          type: boolean
+        - in: query
+          name: margin_bottom
+          type: number
+          format: int64
+          minimum: 0
+        - in: query
+          name: margin_left
+          type: number
+          format: int64
+          minimum: 0
+        - in: query
+          name: margin_right
+          type: number
+          format: int64
+          minimum: 0
+        - in: query
+          name: margin_top
+          type: number
+          format: int64
+          minimum: 0
+        - in: query
+          name: orientation
+          type: string
+          enum: [Portrait, Landscape]
+        - in: query
+          name: page_height
+          type: number
+          format: int64
+          minimum: 0
+        - in: query
+          name: page_width
+          type: number
+          format: int64
+          minimum: 0
+        - in: query
+          name: page_size
+          type: string
+          enum:
+            [
+              A0,
+              A1,
+              A2,
+              A3,
+              A4,
+              A5,
+              A6,
+              A7,
+              A8,
+              A9,
+              B0,
+              B1,
+              B10,
+              B2,
+              B3,
+              B4,
+              B5,
+              B6,
+              B7,
+              B8,
+              B9,
+              C5E,
+              Comm10E,
+              Custom,
+              DLE,
+              Executive,
+              Folio,
+              Ledger,
+              Legal,
+              Letter,
+              Tabloid,
+            ]
+        - in: query
+          name: title
+          type: string
+        - in: query
+          name: disable_external_links
+          type: boolean
+        - in: query
+          name: disable_internal_links
+          type: boolean
+        - in: query
+          name: enable_javascript
+          type: boolean
+        - in: query
+          name: no_background
+          type: boolean
+        - in: query
+          name: no_images
+          type: boolean
+        - in: query
+          name: page_offset
+          type: number
+          format: int64
+          minimum: 0
+        - in: query
+          name: zoom
+          type: number
+          minimum: 0
+        - in: query
+          name: viewport_size
+          type: string
+      responses:
+        200:
+          description: PDF file
+          schema:
+            type: file
+        204:
+          description: no content
+          schema:
+            type: file
+        400:
+          description: bad request
+          schema:
+            type: file
     post:
-      operationId: clip
+      operationId: postClip
+      description: "Clip webpage to PDF via POST"
       parameters:
         - in: header
           name: Accept
@@ -43,35 +220,46 @@ paths:
 definitions:
   Request:
     type: object
+    required:
+      - url
     properties:
+      url:
+        type: string
       presets:
         type: array
         items:
           type: string
           enum:
             - margins:a4
+            - auto
             - medium:post
             - habr:post
             - habr:comments
             - habr:post_with_comments
             - yandex_zen:post
-      url:
-        type: string
       query:
         type: string
+        description: elements to include in result document
       remove:
         type: string
+        description: elements to remove from result document
       no_break_before:
+        description: elements to disable break page before
         type: string
       no_break_inside:
+        description: elements to disable break page inside
         type: string
       no_break_after:
+        description: elements to disable break page after
         type: string
       custom_styles:
+        description: custom css style sheet (will be included in <head>)
         type: string
       with_containers:
+        description: preserve doc containers structure (useful when query param is not empty)
         type: boolean
       force_image_loading:
+        description: replace img[src} attribute value by value of data-src
         type: boolean
       grayscale:
         type: boolean
