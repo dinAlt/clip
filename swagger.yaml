@@ -1,0 +1,161 @@
+swagger: "2.0"
+info:
+  title: "Clip to PDF"
+  version: "1.0.0"
+  contact:
+    name: Kirill Kuryanov
+    email: dinalt2@gmail.com
+produces:
+  - application/pdf
+  - application/octet-stream
+  - text/plain
+consumes:
+  - application/json
+paths:
+  /clip:
+    post:
+      operationId: clip
+      parameters:
+        - in: header
+          name: Accept
+          type: string
+          enum: [application/pdf, application/octet-stream]
+          required: true
+        - in: body
+          name: payload
+          required: true
+          schema:
+            $ref: "#/definitions/Request"
+      responses:
+        200:
+          description: PDF file
+          schema:
+            type: file
+        204:
+          description: no content
+          schema:
+            type: file
+        400:
+          description: bad request
+          schema:
+            type: file
+
+definitions:
+  Request:
+    type: object
+    properties:
+      presets:
+        type: array
+        items:
+          type: string
+          enum:
+            - margins:a4
+            - medium:post
+            - habr:post
+            - habr:comments
+            - habr:post_with_comments
+            - yandex_zen:post
+      url:
+        type: string
+      query:
+        type: string
+      remove:
+        type: string
+      no_break_before:
+        type: string
+      no_break_inside:
+        type: string
+      no_break_after:
+        type: string
+      custom_styles:
+        type: string
+      with_containers:
+        type: boolean
+      force_image_loading:
+        type: boolean
+      grayscale:
+        type: boolean
+      margin_bottom:
+        type: number
+        format: int64
+        minimum: 0
+      margin_left:
+        type: number
+        format: int64
+        minimum: 0
+      margin_right:
+        type: number
+        format: int64
+        minimum: 0
+      margin_top:
+        type: number
+        format: int64
+        minimum: 0
+      orientation:
+        type: string
+        enum: [Portrait, Landscape]
+      page_height:
+        type: number
+        format: int64
+        minimum: 0
+      page_width:
+        type: number
+        format: int64
+        minimum: 0
+      page_size:
+        type: string
+        enum:
+          [
+            A0,
+            A1,
+            A2,
+            A3,
+            A4,
+            A5,
+            A6,
+            A7,
+            A8,
+            A9,
+            B0,
+            B1,
+            B10,
+            B2,
+            B3,
+            B4,
+            B5,
+            B6,
+            B7,
+            B8,
+            B9,
+            C5E,
+            Comm10E,
+            Custom,
+            DLE,
+            Executive,
+            Folio,
+            Ledger,
+            Legal,
+            Letter,
+            Tabloid,
+          ]
+      title:
+        type: string
+      disable_external_links:
+        type: boolean
+      disable_internal_links:
+        type: boolean
+      enable_javascript:
+        type: boolean
+      no_background:
+        type: boolean
+      no_images:
+        type: boolean
+      page_offset:
+        type: number
+        format: int64
+        minimum: 0
+      zoom:
+        type: number
+        minimum: 0
+      viewport_size:
+        type: string
