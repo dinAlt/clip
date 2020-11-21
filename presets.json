@@ -23,7 +23,7 @@
     "query": "article,#comments",
     "remove": ".for_users_only_msg"
   },
-  "yandex_zen:article": {
+  "yandex_zen:post": {
     "url_regexp": "zen\\.yandex\\.ru",
     "query": ".article__middle",
     "no_break_after": "h3",
