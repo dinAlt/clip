@@ -119,9 +119,13 @@ func (w *responseWriter) Header() http.Header {
 func makeReq(ctx context.Context, awsReq *events.APIGatewayProxyRequest) (*http.Request, error) {
 	u := url.URL{}
 	u.Path = awsReq.Path
+
+	fmt.Println("len:", len(awsReq.QueryStringParameters))
+	vs := make(url.Values)
 	for k, v := range awsReq.QueryStringParameters {
-		u.Query().Add(k, v)
+		vs.Add(k, v)
 	}
+	u.RawQuery = vs.Encode()
 	r, err := http.NewRequestWithContext(ctx, awsReq.HTTPMethod, u.String(), strings.NewReader(awsReq.Body))
 	if err != nil {
 		return nil, err

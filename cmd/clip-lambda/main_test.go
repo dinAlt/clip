@@ -19,13 +19,28 @@ func TestHandleRequest(t *testing.T) {
 		wantRes events.APIGatewayProxyResponse
 		wantErr bool
 	}{
-		{"no error", args{context.Background(), events.APIGatewayProxyRequest{
+		{"post", args{context.Background(), events.APIGatewayProxyRequest{
 			HTTPMethod: "POST",
 			Headers: map[string]string{
 				"content-type": "application/json",
 				"accept":       "application/octet-stream",
 			},
 			Body: "{\"url\":\"https://pkg.go.dev/log\"}",
+		}},
+			events.APIGatewayProxyResponse{
+				StatusCode:        200,
+				MultiValueHeaders: map[string][]string{"Content-Type": {"application/octet-stream"}},
+			},
+			false,
+		},
+		{"get", args{context.Background(), events.APIGatewayProxyRequest{
+			HTTPMethod: "GET",
+			Headers: map[string]string{
+				"content-type": "application/json",
+				"accept":       "application/octet-stream",
+			},
+			Path:                  "/clip",
+			QueryStringParameters: map[string]string{"url": "https://pkg.go.dev/log"},
 		}},
 			events.APIGatewayProxyResponse{
 				StatusCode:        200,
