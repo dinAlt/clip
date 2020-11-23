@@ -19,21 +19,21 @@ const (
 )
 
 var (
-	maxWorkersCount int
-	serveAddr       string
-	presetsPath     string
+	maxWorkersCountFlag int
+	serveAddrFlag       string
+	presetsPathFlag     string
 )
 
 func init() {
-	flag.IntVar(&maxWorkersCount, "w", defaultMaxWorkersCount, "maximum workers count")
-	flag.StringVar(&serveAddr, "a", defaultServeAddr, "serve host:port")
-	flag.StringVar(&presetsPath, "p", "", "presets json file")
+	flag.IntVar(&maxWorkersCountFlag, "w", defaultMaxWorkersCount, "maximum workers count")
+	flag.StringVar(&serveAddrFlag, "a", defaultServeAddr, "serve host:port")
+	flag.StringVar(&presetsPathFlag, "p", "", "presets json file")
 }
 
 func main() {
 	flag.Parse()
-	poolC := make(chan struct{}, maxWorkersCount)
-	for i := 0; i < maxWorkersCount; i++ {
+	poolC := make(chan struct{}, maxWorkersCountFlag)
+	for i := 0; i < maxWorkersCountFlag; i++ {
 		poolC <- struct{}{}
 	}
 
@@ -41,21 +41,21 @@ func main() {
 		ps  presets.Presets
 		err error
 	)
-	if presetsPath != "" {
-		ps, err = presets.FromJSONFile(presetsPath)
+	if presetsPathFlag != "" {
+		ps, err = presets.FromJSONFile(presetsPathFlag)
 		if err != nil {
 			log.Fatalf("presets.FromJSONFile: %v", err)
 		}
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/clip", handler.New(handler.Params{
+	mux.HandleFunc("/v0/clip", handler.New(handler.Params{
 		PoolC:   poolC,
 		Logger:  logger{},
 		Presets: ps,
 	}))
 
 	srv := http.Server{
-		Addr:         serveAddr,
+		Addr:         serveAddrFlag,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: time.Minute,
 		IdleTimeout:  5 * time.Second,
