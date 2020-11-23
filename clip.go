@@ -402,19 +402,19 @@ func applyChanges(doc *goquery.Document, p *Params) {
 	}
 	head := doc.Find("head")
 	if p.NoBreakBefore != nil && len(*p.NoBreakBefore) > 0 {
-		head.AppendHtml("<style>" + *p.NoBreakBefore +
+		head.AppendHtml("<style type=\"text/css\">" + *p.NoBreakBefore +
 			"{page-break-before:avoid!important;break-before:avoid-page!important}</style>")
 	}
 	if p.NoBreakInside != nil && len(*p.NoBreakInside) > 0 {
-		head.AppendHtml("<style>" + *p.NoBreakInside +
+		head.AppendHtml("<style type=\"text/css\">" + *p.NoBreakInside +
 			"{page-break-inside:avoid!important;break-inside:avoid-page!important}</style>")
 	}
 	if p.NoBreakAfter != nil && len(*p.NoBreakAfter) > 0 {
-		head.AppendHtml("<style>" + *p.NoBreakAfter +
+		head.AppendHtml("<style type=\"text/css\">" + *p.NoBreakAfter +
 			"{page-break-after:avoid!important;break-after:avoid-page!important}</style>")
 	}
 	if p.CustomStyles != nil && len(*p.CustomStyles) > 0 {
-		head.AppendHtml("<style>" + *p.CustomStyles + "</style>")
+		head.AppendHtml("<style type=\"text/css\">" + *p.CustomStyles + "</style>")
 	}
 	convertURLs(doc)
 }
