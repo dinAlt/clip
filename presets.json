@@ -8,20 +8,23 @@
   "medium:post": {
     "url_regexp": "medium\\.com",
     "query": "article>div>section>div>div",
-    "custom_styles": "body>div{width:auto!important;max-width:none!important;margin:0!important}h1{margin-top:0!important}"
+    "custom_styles": "body>div{width:auto!important;max-width:none!important;margin:0!important}h1{margin-top:0!important}img[data-tex]{visibility:visible!important}"
   },
   "habr:post": {
     "url_regexp": "habr\\.com",
     "query": "article",
-    "remove": ".for_users_only_msg"
+    "remove": ".for_users_only_msg",
+    "custom_styles": "img[data-tex]{visibility:visible!important}"
   },
   "habr:comments": {
     "query": "#comments",
-    "remove": ".for_users_only_msg"
+    "remove": ".for_users_only_msg",
+    "custom_styles": "img[data-tex]{visibility:visible!important}"
   },
   "habr:post_with_comments": {
     "query": "article,#comments",
-    "remove": ".for_users_only_msg"
+    "remove": ".for_users_only_msg",
+    "custom_styles": "img[data-tex]{visibility:visible!important}"
   },
   "yandex_zen:post": {
     "url_regexp": "zen\\.yandex\\.ru",
